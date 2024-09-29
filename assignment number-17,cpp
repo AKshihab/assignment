@@ -1,12 +1,11 @@
-#include <cmath>
-#include <cstdio>
-#include <vector>
+
+
+
 #include <iostream>
-#include <algorithm>
-#include <cassert>
+
+#include <cmath>
 using namespace std;
 
-// Write your Student class here
 #include <iostream>
 using namespace std;
 
@@ -38,10 +37,8 @@ int main() {
         s[i].input();
     }
 
-    // calculate kristen's score
     int kristen_score = s[0].calculateTotalScore();
 
-    // determine how many students scored higher than kristen
     int count = 0; 
     for(int i = 1; i < n; i++){
         int total = s[i].calculateTotalScore();
@@ -50,7 +47,6 @@ int main() {
         }
     }
 
-    // print result
     cout << count;
     
     return 0;
