@@ -1,0 +1,262 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX 100
+
+// Flight structure
+typedef struct {
+    char flightNo[10];
+    char source[30];
+    char destination[30];
+    char date[15];
+    int seats;
+} Flight;
+
+// Booking structure
+typedef struct {
+    char flightNo[10];
+    char passengerName[50];
+    char passportNo[20];
+} Booking;
+
+void adminMenu();
+void customerMenu();
+void addFlight();
+void viewFlights();
+void removeFlight();
+void bookTicket();
+void viewBookings();
+void cancelBooking();
+void viewAllBookings();
+
+int main() {
+    int choice;
+
+    while (1) {
+        printf("\n==== Airplane Ticket Management System ====\n\n");
+        printf("1. Administration\n");
+        printf("2. Customer\n");
+        printf("3. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        getchar(); // consume newline
+
+        switch (choice) {
+            case 1:
+                adminMenu();
+                break;
+            case 2:
+                customerMenu();
+                break;
+            case 3:
+                printf("Exiting the system.\n");
+                exit(0);
+            default:
+                printf("Invalid choice. Try again.\n");
+        }
+    }
+}
+
+// ---------------- Administration Menu ----------------
+
+void adminMenu() {
+    int choice;
+    while (1) {
+        printf("\n--- Admin Menu ---\n\n");
+        printf("1. Add Flight\n");
+        printf("2. View All Flights\n");
+        printf("3. Remove Flight\n");
+        printf("4. View All Bookings\n");
+        printf("5. Back\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        getchar();
+
+        switch (choice) {
+            case 1: addFlight(); break;
+            case 2: viewFlights(); break;
+            case 3: removeFlight(); break;
+            case 4: viewAllBookings(); break;
+            case 5: return;
+            default: printf("Invalid choice.\n");
+        }
+    }
+}
+
+void addFlight() {
+    Flight flight;
+    FILE *fp = fopen("flights.txt", "a");
+
+    printf("Enter flight number: ");
+    fgets(flight.flightNo, 10, stdin); strtok(flight.flightNo, "\n");
+    printf("Enter source: ");
+    fgets(flight.source, 30, stdin); strtok(flight.source, "\n");
+    printf("Enter destination: ");
+    fgets(flight.destination, 30, stdin); strtok(flight.destination, "\n");
+    printf("Enter date (YYYY-MM-DD): ");
+    fgets(flight.date, 15, stdin); strtok(flight.date, "\n");
+    printf("Enter available seats: ");
+    scanf("%d", &flight.seats);
+    getchar();
+
+    fwrite(&flight, sizeof(Flight), 1, fp);
+    fclose(fp);
+
+    printf("Flight added successfully.\n");
+}
+
+void viewFlights() {
+    Flight flight;
+    FILE *fp = fopen("flights.txt", "r");
+
+    printf("\nAvailable Flights:\n");
+    printf("%-10s %-15s %-15s %-12s %-5s\n", "FlightNo", "Source", "Destination", "Date", "Seats");
+    while (fread(&flight, sizeof(Flight), 1, fp)) {
+        printf("%-10s %-15s %-15s %-12s %-5d\n",
+               flight.flightNo, flight.source, flight.destination, flight.date, flight.seats);
+    }
+    fclose(fp);
+}
+
+void removeFlight() {
+    char flightNo[10];
+    Flight flight;
+    FILE *fp = fopen("flights.txt", "r");
+    FILE *temp = fopen("temp.txt", "w");
+
+    printf("Enter flight number to remove: ");
+    fgets(flightNo, 10, stdin); strtok(flightNo, "\n");
+
+    int found = 0;
+    while (fread(&flight, sizeof(Flight), 1, fp)) {
+        if (strcmp(flight.flightNo, flightNo) != 0)
+            fwrite(&flight, sizeof(Flight), 1, temp);
+        else
+            found = 1;
+    }
+
+    fclose(fp);
+    fclose(temp);
+
+    remove("flights.txt");
+    rename("temp.txt", "flights.txt");
+
+    if (found)
+        printf("Flight removed successfully.\n");
+    else
+        printf("Flight not found.\n");
+}
+
+void viewAllBookings() {
+    Booking booking;
+    FILE *fp = fopen("bookings.txt", "r");
+
+    printf("\nAll Bookings:\n");
+    printf("%-10s %-20s %-20s\n", "FlightNo", "Passenger Name", "Passport No");
+    while (fread(&booking, sizeof(Booking), 1, fp)) {
+        printf("%-10s %-20s %-20s\n", booking.flightNo, booking.passengerName, booking.passportNo);
+    }
+    fclose(fp);
+}
+
+// ---------------- Customer Menu ----------------
+
+void customerMenu() {
+    int choice;
+    while (1) {
+        printf("\n--- Customer Menu ---\n");
+        printf("1. View Available Flights\n");
+        printf("2. Book a Ticket\n");
+        printf("3. Cancel Booking\n");
+        printf("4. Back\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        getchar();
+
+        switch (choice) {
+            case 1: viewFlights(); break;
+            case 2: bookTicket(); break;
+            case 3: cancelBooking(); break;
+            case 4: return;
+            default: printf("Invalid choice.\n");
+        }
+    }
+}
+
+void bookTicket() {
+    Booking booking;
+    char flightNo[10];
+    Flight flight;
+    int found = 0;
+
+    printf("Enter flight number to book: ");
+    fgets(flightNo, 10, stdin); strtok(flightNo, "\n");
+
+    FILE *fp = fopen("flights.txt", "r+");
+    FILE *temp = fopen("temp.txt", "w");
+
+    while (fread(&flight, sizeof(Flight), 1, fp)) {
+        if (strcmp(flight.flightNo, flightNo) == 0) {
+            found = 1;
+            if (flight.seats > 0) {
+                flight.seats--;
+
+                printf("Enter passenger name: ");
+                fgets(booking.passengerName, 50, stdin); strtok(booking.passengerName, "\n");
+                printf("Enter passport number: ");
+                fgets(booking.passportNo, 20, stdin); strtok(booking.passportNo, "\n");
+
+                strcpy(booking.flightNo, flight.flightNo);
+
+                FILE *bfp = fopen("bookings.txt", "a");
+                fwrite(&booking, sizeof(Booking), 1, bfp);
+                fclose(bfp);
+
+                printf("Ticket booked successfully!\n");
+            } else {
+                printf("No seats available on this flight.\n");
+            }
+        }
+        fwrite(&flight, sizeof(Flight), 1, temp);
+    }
+
+    fclose(fp);
+    fclose(temp);
+
+    remove("flights.txt");
+    rename("temp.txt", "flights.txt");
+
+    if (!found)
+        printf("Flight not found.\n");
+}
+
+void cancelBooking() {
+    char passportNo[20];
+    Booking booking;
+    int found = 0;
+
+    printf("Enter passport number to cancel booking: ");
+    fgets(passportNo, 20, stdin); strtok(passportNo, "\n");
+
+    FILE *fp = fopen("bookings.txt", "r");
+    FILE *temp = fopen("temp.txt", "w");
+
+    while (fread(&booking, sizeof(Booking), 1, fp)) {
+        if (strcmp(booking.passportNo, passportNo) != 0)
+            fwrite(&booking, sizeof(Booking), 1, temp);
+        else
+            found = 1;
+    }
+
+    fclose(fp);
+    fclose(temp);
+
+    remove("bookings.txt");
+    rename("temp.txt", "bookings.txt");
+
+    if (found)
+        printf("Booking cancelled successfully.\n");
+    else
+        printf("Booking not found.\n");
+}
